@@ -2,8 +2,19 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class MyFrame extends JFrame {
+
+    Connection connection = null;
+    PreparedStatement statement = null;
+    ResultSet result = null;
+    int id = -1;
 
     JPanel topPanel = new JPanel();
     JPanel midPanel = new JPanel();
@@ -26,6 +37,8 @@ public class MyFrame extends JFrame {
     JButton insertBTN = new JButton("Доабвяне");
     JButton updateBTN = new JButton("Редактиране");
     JButton deleteBTN = new JButton("Изтриване");
+    JButton searchBTN = new JButton("Търсене");
+    JButton refreshBTN = new JButton("Обновяване");
 
     JTable table = new JTable();
     JScrollPane scroll = new JScrollPane(table);
@@ -53,25 +66,157 @@ public class MyFrame extends JFrame {
         midPanel.add(insertBTN);
         midPanel.add(updateBTN);
         midPanel.add(deleteBTN);
+        midPanel.add(searchBTN);
+        midPanel.add(refreshBTN);
         this.add(midPanel);
 
         insertBTN.addActionListener(new AddAction());
+        deleteBTN.addActionListener(new DeleteAction());
+        //TODO update
+        searchBTN.addActionListener(new SearchAction());
+        refreshBTN.addActionListener(new RefreshAction());
 
         //bottomPanel
         scroll.setPreferredSize(new Dimension(350,150));
         bottomPanel.add(scroll);
         this.add(bottomPanel);
 
+        table.addMouseListener(new MouseAction());
+        refreshTable();
         this.setVisible(true);
+    }
+
+    public void refreshTable() {
+        connection = DBConnection.getConnection();
+        try {
+            statement = connection.prepareStatement("select * from Person");
+            result = statement.executeQuery();
+            table.setModel(new MyModel(result));
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void clearForm() {
+        fNameTF.setText("");
+        lNameTF.setText("");
+        ageTF.setText("");
+        salaryTF.setText("");
     }
 
     class AddAction implements ActionListener {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            System.out.println(fNameTF.getText() + " " + lNameTF.getText() + " " +
-                    genderCombo.getSelectedItem().toString() + " " + ageTF.getText() + " " +
-                    salaryTF.getText());
+            connection = DBConnection.getConnection();
+            String sql = "insert into person (fname, lname, gender, age, salary) " +
+                    "values(?, ?, ?, ?, ?)";
+            try {
+                statement = connection.prepareStatement(sql);
+                statement.setString(1, fNameTF.getText());
+                statement.setString(2, lNameTF.getText());
+                statement.setString(3, genderCombo.getSelectedItem().toString());
+                statement.setInt(4, Integer.parseInt(ageTF.getText()));
+                statement.setFloat(5, Float.parseFloat(salaryTF.getText()));
+
+                statement.execute();
+                refreshTable();
+                clearForm();
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+    }
+
+    class MouseAction implements MouseListener {
+
+        @Override
+        public void mouseClicked(MouseEvent e) {
+
+            int row = table.getSelectedRow();
+            id = Integer.parseInt(table.getValueAt(row, 0).toString());
+            fNameTF.setText(table.getValueAt(row, 1).toString());
+            lNameTF.setText(table.getValueAt(row, 2).toString());
+            ageTF.setText(table.getValueAt(row, 4).toString());
+            salaryTF.setText(table.getValueAt(row, 5).toString());
+
+            if (table.getValueAt(row, 3).toString().equals("Мъж")) {
+                genderCombo.setSelectedIndex(0);
+            } else {
+                genderCombo.setSelectedIndex(1);
+            }
+        }
+
+        @Override
+        public void mousePressed(MouseEvent e) {
+
+        }
+
+        @Override
+        public void mouseReleased(MouseEvent e) {
+
+        }
+
+        @Override
+        public void mouseEntered(MouseEvent e) {
+
+        }
+
+        @Override
+        public void mouseExited(MouseEvent e) {
+
+        }
+    }
+
+    class DeleteAction implements ActionListener {
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+
+            connection = DBConnection.getConnection();
+            String sql = "delete from person where id=?";
+            try {
+                statement = connection.prepareStatement(sql);
+                statement.setInt(1, id);
+                statement.execute();
+                refreshTable();
+                clearForm();
+                id = -1;
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+    }
+
+    class SearchAction implements ActionListener {
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+
+            connection = DBConnection.getConnection();
+            String sql = "select * from person where age=?";
+            try {
+                statement = connection.prepareStatement(sql);
+                statement.setInt(1, Integer.parseInt(ageTF.getText()));
+                result = statement.executeQuery();
+                table.setModel(new MyModel(result));
+                clearForm();
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+    }
+
+    class RefreshAction implements ActionListener {
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+
+            refreshTable();
         }
     }
 }
