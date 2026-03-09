@@ -33,6 +33,7 @@ public class MyFrame extends JFrame {
 
     String[] item = {"Мъж", "Жена"};
     JComboBox<String> genderCombo = new JComboBox<>(item);
+    JComboBox<String> personCombo = new JComboBox<String>();
 
     JButton insertBTN = new JButton("Доабвяне");
     JButton updateBTN = new JButton("Редактиране");
@@ -68,12 +69,13 @@ public class MyFrame extends JFrame {
         midPanel.add(deleteBTN);
         midPanel.add(searchBTN);
         midPanel.add(refreshBTN);
+        midPanel.add(personCombo);
         this.add(midPanel);
 
         insertBTN.addActionListener(new AddAction());
         deleteBTN.addActionListener(new DeleteAction());
-        //TODO update
-        searchBTN.addActionListener(new SearchAction());
+        updateBTN.addActionListener(new UpdateAction());
+        searchBTN.addActionListener(new SearchByAgeAction());
         refreshBTN.addActionListener(new RefreshAction());
 
         //bottomPanel
@@ -83,6 +85,7 @@ public class MyFrame extends JFrame {
 
         table.addMouseListener(new MouseAction());
         refreshTable();
+        refreshComboPerson();
         this.setVisible(true);
     }
 
@@ -95,6 +98,23 @@ public class MyFrame extends JFrame {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void refreshComboPerson() {
+        personCombo.removeAllItems();
+        connection = DBConnection.getConnection();
+        String sql = "select id,fname,lname from person";
+        String item = "";
+        try {
+            statement = connection.prepareStatement(sql);
+            result = statement.executeQuery();
+            while (result.next()) {
+                item = result.getObject(1).toString() + ". " + result.getObject(2).toString() + " " + result.getObject(3).toString();
+                personCombo.addItem(item);
+            }
+        } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
@@ -123,6 +143,7 @@ public class MyFrame extends JFrame {
 
                 statement.execute();
                 refreshTable();
+                refreshComboPerson();
                 clearForm();
             } catch (SQLException ex) {
                 throw new RuntimeException(ex);
@@ -170,6 +191,14 @@ public class MyFrame extends JFrame {
         }
     }
 
+    class UpdateAction implements ActionListener {
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            //TODO
+        }
+    }
+
     class DeleteAction implements ActionListener {
 
         @Override
@@ -182,6 +211,7 @@ public class MyFrame extends JFrame {
                 statement.setInt(1, id);
                 statement.execute();
                 refreshTable();
+                refreshComboPerson();
                 clearForm();
                 id = -1;
             } catch (SQLException ex) {
@@ -190,7 +220,7 @@ public class MyFrame extends JFrame {
         }
     }
 
-    class SearchAction implements ActionListener {
+    class SearchByAgeAction implements ActionListener {
 
         @Override
         public void actionPerformed(ActionEvent e) {
